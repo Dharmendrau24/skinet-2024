@@ -1,3 +1,4 @@
+using Core.Interface;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,8 +11,23 @@ builder.Services.AddDbContext<StoreContext>(opt =>
 {
   DbContextOptionsBuilder dbContextOptionsBuilder = opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+builder.Services.AddScoped<IProductRepository, ProductRespository>();
 var app = builder.Build();
 
 app.MapControllers();
+
+try
+{
+  using var scope = app.Services.CreateScope();
+  var services = scope.ServiceProvider;
+  var context = services.GetRequiredService<StoreContext>();
+  await context.Database.MigrateAsync();
+  await StoreContexSeed.SeedAsync(context);
+}
+catch (Exception ex)
+{
+  Console.WriteLine(ex);
+  throw;
+}
 
 app.Run();
